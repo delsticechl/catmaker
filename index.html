@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#f7e9d7"/>
+  <title>Cat Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1>Cat Maker</h1>
+          <p>Dress up, save looks, and export your cat.</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="icon-btn" id="sound-toggle" aria-pressed="true" title="Sound on">
+          
+        </button>
+      </div>
+    </header>
+
+    <div class="game-container">
+      <section class="stage-column">
+        <div class="stage-frame">
+          <div class="stage" id="stage" aria-label="Cat preview">
+            <img id="layer-background"  class="layer" alt="" />
+            <img id="layer-skin"        class="layer" alt="Skin" />
+            <img id="layer-expression"  class="layer" alt="" />
+            <img id="layer-clothes"     class="layer" alt="" />
+            <img id="layer-accessories" class="layer" alt="" />
+          </div>
+        </div>
+
+        <div class="action-bar" role="toolbar" aria-label="Outfit actions">
+          <button type="button" class="action-btn primary" id="btn-save">Save Outfit</button>
+          <button type="button" class="action-btn" id="btn-export">Export Image</button>
+          <button type="button" class="action-btn danger" id="btn-reset">Reset All</button>
+        </div>
+      </section>
+
+      <aside class="wardrobe">
+        <div class="wardrobe-head">
+          <h2>Wardrobe</h2>
+          <p class="hint">Tap a look to try it on.</p>
+        </div>
+
+        <div class="category-tabs" role="tablist">
+          <button type="button" class="tab-btn active" data-category="clothes" role="tab">Clothes</button>
+          <button type="button" class="tab-btn" data-category="accessories" role="tab">Accessories</button>
+          <button type="button" class="tab-btn" data-category="expression" role="tab">Expression</button>
+          <button type="button" class="tab-btn" data-category="skin" role="tab">Skin</button>
+          <button type="button" class="tab-btn" data-category="background" role="tab">Background</button>
+        </div>
+
+        <div id="item-grid" class="item-grid" role="list"></div>
+
+        <section class="saved-panel">
+          <div class="saved-head">
+            <h3>Saved outfits</h3>
+            <span id="saved-count" class="badge">0</span>
+          </div>
+          <div id="saved-list" class="saved-list">
+            <p class="empty-saved">No saved looks yet. Mix an outfit and tap Save.</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="modal" class="modal" hidden aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h3 id="modal-title">Save outfit</h3>
+      <p id="modal-copy">Give this look a name.</p>
+      <input id="outfit-name" type="text" maxlength="32" placeholder="Sunny park look" autocomplete="off"/>
+      <div class="modal-actions">
+        <button type="button" class="action-btn" id="modal-cancel">Cancel</button>
+        <button type="button" class="action-btn primary" id="modal-confirm">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
