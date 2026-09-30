@@ -6,7 +6,9 @@ const inventory = {
     { id: "c0", name: "None", image: "" },
     { id: "c1", name: "Lone Wolf Fit", image: "assets/clothes1.png" },
     { id: "c2", name: "Zip Zeep Zip", image: "assets/clothes2.png" },
-    { id: "c3", name: "Bussinessman Suit", image: "assets/clothes3.png" }
+    { id: "c3", name: "Bussinessman Suit", image: "assets/clothes3.png" },
+    { id: "c4", name: "Lingerie", image: "assets/clothes4.png" },
+    { id: "c5", name: "Eggplant", image: "assets/clothes5.png" }
   ],
   accessories: [
     { id: "a0", name: "None", image: "" },
@@ -14,32 +16,23 @@ const inventory = {
     { id: "a2", name: "Cherry Warmies", image: "assets/acc2.png" },
     { id: "a3", name: "Banana", image: "assets/acc3.png" }
   ],
-  expression: [
-    { id: "e0", name: "None", image: "" },
-    { id: "e1", name: "Happy", image: "assets/exp1.png" },
-    { id: "e2", name: "Wink", image: "assets/exp2.png" }
-  ],
   skin: [
     { id: "s1", name: "White", image: "assets/skin1.png" },
     { id: "s2", name: "Gray", image: "assets/skin2.png" },
     { id: "s3", name: "Hachiware", image: "assets/skin3.png" },
-    { id: "s4", name: "Cheese Dippeds", image: "assets/skin4.png" },
+    { id: "s4", name: "Tabby", image: "assets/skin4.png" },
     { id: "s5", name: "Calico", image: "assets/skin5.png" }
-  ],
-  background: [
-    { id: "b0", name: "None", image: "" },
-    { id: "b1", name: "Room", image: "assets/bg1.png" },
-    { id: "b2", name: "Park", image: "assets/bg2.png" }
   ]
 };
 
 const defaultOutfit = {
   clothes: "",
   accessories: "",
-  expression: "",
-  skin: "assets/skin1.png",
-  background: ""
+  skin: "assets/skin1.png"
 };
+
+// Bottom-to-top draw order (must match the z-index order in the stage)
+const LAYER_ORDER = ["skin", "clothes", "accessories"];
 
 let currentCategory = "clothes";
 let equipped = { ...defaultOutfit };
@@ -51,6 +44,7 @@ const toastEl = document.getElementById("toast");
 const modalEl = document.getElementById("modal");
 const nameInput = document.getElementById("outfit-name");
 const soundToggle = document.getElementById("sound-toggle");
+const stage = document.getElementById("stage");
 
 function getAudio() {
   if (!audioCtx) {
@@ -128,7 +122,14 @@ function applyLayer(category, imagePath, animate = true) {
 }
 
 function applyOutfit(outfit, animate = true) {
-  equipped = { ...defaultOutfit, ...outfit };
+  // Only keep known categories (old saved outfits may contain removed ones)
+  const next = { ...defaultOutfit };
+  Object.keys(defaultOutfit).forEach((category) => {
+    if (outfit && typeof outfit[category] === "string") {
+      next[category] = outfit[category];
+    }
+  });
+  equipped = next;
   Object.keys(defaultOutfit).forEach((category) => {
     applyLayer(category, equipped[category], animate);
   });
@@ -242,7 +243,7 @@ function openModal(mode) {
     setTimeout(() => nameInput.focus(), 50);
   } else {
     title.textContent = "Reset outfit?";
-    copy.textContent = "This clears clothes, extras, and background. Saved looks stay in the list.";
+    copy.textContent = "This clears your clothes, accessories, and skin. Saved looks stay in the list.";
     nameInput.hidden = true;
     confirm.textContent = "Reset";
     confirm.classList.add("primary");
@@ -269,7 +270,7 @@ function saveOutfit(name) {
     createdAt: Date.now(),
     items: { ...equipped }
   });
-  persistSaved(list);
+  persistSaved(list); // saving only stores the look — it never downloads
   sounds().save();
   toast("Outfit saved");
   return true;
@@ -297,7 +298,7 @@ function resetOutfit() {
 
 function waitForImage(img) {
   return new Promise((resolve) => {
-    if (!img.classList.contains("visible") || !img.src) {
+    if (!img.classList.contains("visible") || !img.getAttribute("src")) {
       resolve(null);
       return;
     }
@@ -305,32 +306,48 @@ function waitForImage(img) {
       resolve(img);
       return;
     }
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    img.addEventListener("load", () => resolve(img), { once: true });
+    img.addEventListener("error", () => resolve(null), { once: true });
   });
 }
 
+// Exports exactly what the stage shows, at the stage's own aspect ratio
+// (no stretching). Works any time — no need to save first.
 async function exportImage() {
+  const rect = stage.getBoundingClientRect();
+  const scale = Math.max(2, window.devicePixelRatio || 1); // crisp output
+  const w = Math.round(rect.width * scale);
+  const h = Math.round(rect.height * scale);
+
   const canvas = document.createElement("canvas");
-  canvas.width = 800;
-  canvas.height = 1200;
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#fff8f1";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, w, h);
 
-  const order = ["background", "skin", "expression", "clothes", "accessories"];
-  for (const category of order) {
-    const img = document.getElementById(`layer-${category}`);
-    const ready = await waitForImage(img);
-    if (ready) {
-      ctx.drawImage(ready, 0, 0, canvas.width, canvas.height);
-    }
+  for (const category of LAYER_ORDER) {
+    const img = await waitForImage(document.getElementById(`layer-${category}`));
+    if (!img) continue;
+    // same as CSS object-fit: contain
+    const ratio = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+    const dw = img.naturalWidth * ratio;
+    const dh = img.naturalHeight * ratio;
+    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
   }
 
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) throw new Error("toBlob failed");
+
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.download = `cat-maker-${Date.now()}.png`;
-  link.href = canvas.toDataURL("image/png");
+  link.href = url;
+  document.body.appendChild(link);
   link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
   sounds().export();
   toast("Image downloaded");
 }
@@ -348,7 +365,8 @@ document.getElementById("btn-save").addEventListener("click", () => {
 });
 
 document.getElementById("btn-export").addEventListener("click", () => {
-  exportImage().catch(() => {
+  exportImage().catch((err) => {
+    console.error(err);
     sounds().error();
     toast("Could not export image");
   });
@@ -384,10 +402,10 @@ nameInput.addEventListener("keydown", (event) => {
 });
 
 document.getElementById("saved-list").addEventListener("click", (event) => {
-  const loadId = event.target.dataset.load;
-  const deleteId = event.target.dataset.delete;
-  if (loadId) loadOutfit(loadId);
-  if (deleteId) deleteOutfit(deleteId);
+  const btn = event.target.closest("button");
+  if (!btn) return;
+  if (btn.dataset.load) loadOutfit(btn.dataset.load);
+  if (btn.dataset.delete) deleteOutfit(btn.dataset.delete);
 });
 
 soundToggle.addEventListener("click", () => {
@@ -399,7 +417,6 @@ soundToggle.addEventListener("click", () => {
 
 let touchStartX = 0;
 const tabs = [...document.querySelectorAll(".tab-btn")];
-const stage = document.getElementById("stage");
 
 stage.addEventListener("touchstart", (event) => {
   touchStartX = event.changedTouches[0].screenX;

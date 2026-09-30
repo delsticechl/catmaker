@@ -155,11 +155,9 @@ h1 {
   100% { transform: scale(1); }
 }
 
-#layer-background  { z-index: 1; }
-#layer-skin        { z-index: 2; }
-#layer-expression  { z-index: 3; }
-#layer-clothes     { z-index: 4; }
-#layer-accessories { z-index: 5; }
+#layer-skin        { z-index: 1; }
+#layer-clothes     { z-index: 2; }
+#layer-accessories { z-index: 3; }
 
 .action-bar {
   display: grid;
